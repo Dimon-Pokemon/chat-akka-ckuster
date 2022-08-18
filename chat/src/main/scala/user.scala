@@ -6,23 +6,26 @@ import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
 
 class user {
-  private var login: StringProperty = null
+  private var name: StringProperty = null
   private var ip: StringProperty = null
   private var port: IntegerProperty = null
+  private var actorReference: StringProperty = null
+  
 
-  def this(login: String, ip: String, port: Integer) = {
+  def this(name: String, ip: String, port: Integer, actorReference: String) = {
     this()
-    this.login = new SimpleStringProperty(login)
+    this.name = new SimpleStringProperty(name)
     this.ip = new SimpleStringProperty(ip)
     this.port = new SimpleIntegerProperty(port)
+    this.actorReference = new SimpleStringProperty(actorReference)
   }
 
-  def loginProperty: StringProperty = login
+  def nameProperty: StringProperty = name
 
-  def getLogin: String = login.get()
+  def getName: String = name.get()
 
-  def login_ (newValue: String): Unit = {
-    this.login.set(newValue)
+  def name_ (newValue: String): Unit = {
+    this.name.set(newValue)
   }
 
 
@@ -41,5 +44,13 @@ class user {
 
   def port_ (newValue: Integer): Unit = {
     this.port.set(newValue)
+  }
+  
+  def actorReferenceProperty: StringProperty = actorReference
+  
+  def getActorReference: String = actorReference.get
+  
+  def actorReference_ (newValue: String): Unit = {
+    this.actorReference.set(newValue)
   }
 }

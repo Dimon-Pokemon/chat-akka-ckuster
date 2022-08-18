@@ -10,8 +10,6 @@ import javafx.scene.text.{Text, TextFlow}
 import javafx.scene.paint.Color
 import javafx.stage.WindowEvent
 
-import scala.collection.mutable.ArrayBuffer
-
 //object rootGUIController{
 //  def addLabel(messageFromClient: String, vBox: VBox) = {
 //    val hBox: HBox = new HBox()
@@ -44,7 +42,7 @@ class rootGUIController {
   private var message: TextField = null
 
   @FXML
-  private var messageHistory: VBox = null
+  private var messageHistory: VBox = null // сообщения текущего чата( не путать с chatsHistory - ВСЕ сообщения со ВСЕХ чатов)
 
   @FXML
   private var scroll: ScrollPane = null
@@ -52,28 +50,62 @@ class rootGUIController {
   @FXML
   private var contacts: TableView[user] = null
 
+  @FXML
+  private var contactsColumn: TableColumn[user, String] = null
+
   private var mainChat: mainChat = null
+
+  private var typeChat: String = "public"
+  
+  private var selectedUser: String = "publicChat"
 
 
   @FXML
   private def initialize(): Unit = {
   messageHistory.heightProperty().addListener((observable, oldValue, newValue) => scroll.setVvalue(newValue.asInstanceOf[Double]))
+  contactsColumn.setCellValueFactory((cellData) => cellData.getValue().nameProperty)
+
+  contacts.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) => change(newValue))
   }
 
   def setMainChat(mainChat: mainChat): Unit = {
     this.mainChat = mainChat
 
-    //contacts.setItems() надо придумать класс пользователя для отображения его в таблице контактов
+    contacts.setItems(mainChat.getConnectionList)
   }
 
+  def change(user: user): Unit ={
+    println("Selected user " + user.getName + ". His ActorReference is " + user.getActorReference)
+    if(user.getActorReference.equals("publicChat")){
+      //mainChat.subscribing()
+      typeChat = "public"
+      selectedUser = "publicChat"
+      messageHistory.getChildren.clear()
+      mainChat.chatsHistory.get(0)(selectedUser).foreach(messageHistory.getChildren.add)
+    }else{
+      typeChat = "private"
+      selectedUser = user.getActorReference
+      //mainChat.unsubscribing()
+      messageHistory.getChildren.clear()
+      mainChat.chatsHistory.get(0)(selectedUser).foreach(messageHistory.getChildren.add)
+    }
+  }
 
+  /**
+   * Метод, определяющий операции, производимые при нажатии на крестик
+   * @return
+   */
   def closeEventHadler: EventHandler[WindowEvent] = new EventHandler[WindowEvent](){
     override def handle(event: WindowEvent): Unit = {
       mainChat.getPrimaryStage.close()
+      mainChat.chatsHistory.get(0).foreach(println)
       System.exit(0)
 
     }
   }
+
+
+
   /**
    * Функционал кнопки
    */
@@ -86,6 +118,11 @@ class rootGUIController {
     // пользователь может ничего не вводить и
     // нажать на кнопку отправки просто так, по приколу
     if(!messageToSend.isEmpty){
+      if(typeChat.equals("public")) {
+        mainChat.sendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser)) //mainChat.actor1 !
+      }else{
+        mainChat.privateSendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser) )
+      }
       // горизонтальный контейнер для упаковывания сообщения пользователя
       var hBox: HBox = new HBox()
       // определение свойств контейнера:
@@ -114,34 +151,32 @@ class rootGUIController {
       hBox.getChildren().add(textFlow)
       messageHistory.getChildren.add(hBox)
 
+      mainChat.chatsHistory.get(0)(selectedUser).append(hBox)
+
       // далее отправляем сообщение другим пользователям
       // в классе mainChat написана функция sendingMessage, которая отправляет актору сообщение с кейс классом case class send(message: (String, ActorRef))
       // пришлось так сделать, т.к. сам класс send определен за пределами класса mainChat
       // а при определении класса send внутри mainChat, он становится недоступным для класса-актора actor
       // При определении внутри mainChat и класса-актора actor, и кейс класса send jvm выбрасывает ошибку
-      mainChat.actor1 ! mainChat.sendingMessage((messageToSend, mainChat.actor1, mainChat.userName))
+
 
       // в конце очищаем поле ввода
       message.clear()
     }
   }
 
-    def addLabel(messageFromClient: String, vBox: VBox = this.messageHistory, userName: String) = {
-//      val hBox1: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковываться имя пользователя-собеседника
-//      hBox1.setAlignment(Pos.CENTER_LEFT) // позиция hBox1 на макете (в центре слева)
-//      hBox1.setPadding(new Insets(5, 5, 0, 10))
-
+    def createHBox(message: String, user: String): HBox = {
       val hBox: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковывается сообщение от пользователя-собеседника
       hBox.setAlignment(Pos.CENTER_LEFT) // позиция hBox на макете (в центре слева)
       hBox.setPadding(new Insets(5, 5, 5, 10))
 
-      val userNameText: Text = new Text(userName+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
+      val userNameText: Text = new Text(user+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
       val userNameTextFlow: TextFlow = new TextFlow(userNameText) // TextFlow объект из имя пользователя (userNameText) класса Text
       userNameTextFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 10px 0px 0px 10px;")
       userNameTextFlow.setPadding(new Insets(5, 0, 5, 10))
       userNameText.setFill(Color.rgb(15, 125, 242))
 
-      val text: Text  = new Text(messageFromClient) // Text объект из сообщения пользователя-собеседника (тот, кто прислал новое сообщение)
+      val text: Text  = new Text(message) // Text объект из сообщения пользователя-собеседника (тот, кто прислал новое сообщение)
       val textFlow: TextFlow = new TextFlow(text)  // TextFlow объект из сообщения пользователя-собеседника
       textFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 0px 10px 10px 0px;") // установка стиля textFlow
       textFlow.setPadding(new Insets(5, 10, 5, 0))
@@ -155,6 +190,59 @@ class rootGUIController {
       hBox.getChildren.add(userNameTextFlow)
       hBox.getChildren.add(textFlow) // помещаем в горизонтальный контейнер hBox: HBox сообщение пользователя-собеседника textFlow
 
+      hBox
+    }
+
+  /**
+   * Функция добавляет в chatsHistory сообщение, полученное актором, но НЕ ОТОБРАЖАЕТ его на экране.
+   * Нужно для ситуации, когда пользователь, находясь в чате X, получает сообщение из чата Y
+   * @param messageFromClient сообщение(текст), которое получил актор
+   * @param userName имя пользователя, отправившего сообщение актору, получившему сообщение
+   */
+    def addLabelIntoChatsHistory(messageFromClient: String, userName: String, senderReference: String): Unit = {
+        val hBox: HBox = createHBox(messageFromClient, userName)
+        mainChat.chatsHistory.get(0)(senderReference).append(hBox)
+    }
+
+
+  /**
+   * Функция выводит сообщение, полученное актором, на экран и добавляет его в chatsHistory
+   * @param messageFromClient сообщение(текст), которое получил актор
+   * @param vBox объект-контейнер вертикального типа VBox для отображения всех сообщений
+   * @param userName имя пользователя, отправившего сообщение актору, получившему сообщение
+   * @return
+   */
+    def addLabel(messageFromClient: String, vBox: VBox = this.messageHistory, userName: String) = {
+//      val hBox1: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковываться имя пользователя-собеседника
+//      hBox1.setAlignment(Pos.CENTER_LEFT) // позиция hBox1 на макете (в центре слева)
+//      hBox1.setPadding(new Insets(5, 5, 0, 10))
+
+
+      val hBox: HBox = createHBox(messageFromClient, userName)
+//      val hBox: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковывается сообщение от пользователя-собеседника
+//      hBox.setAlignment(Pos.CENTER_LEFT) // позиция hBox на макете (в центре слева)
+//      hBox.setPadding(new Insets(5, 5, 5, 10))
+//
+//      val userNameText: Text = new Text(userName+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
+//      val userNameTextFlow: TextFlow = new TextFlow(userNameText) // TextFlow объект из имя пользователя (userNameText) класса Text
+//      userNameTextFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 10px 0px 0px 10px;")
+//      userNameTextFlow.setPadding(new Insets(5, 0, 5, 10))
+//      userNameText.setFill(Color.rgb(15, 125, 242))
+//
+//      val text: Text  = new Text(messageFromClient) // Text объект из сообщения пользователя-собеседника (тот, кто прислал новое сообщение)
+//      val textFlow: TextFlow = new TextFlow(text)  // TextFlow объект из сообщения пользователя-собеседника
+//      textFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 0px 10px 10px 0px;") // установка стиля textFlow
+//      textFlow.setPadding(new Insets(5, 10, 5, 0))
+//
+//      // два TextFlow, один содержит имя отправителя сообщения (собеседник), а второй текст сообщения отправителя
+//      // располагаются они в HBox, который, в свою очередь, располагается в VBox
+//      // эти два TextFlow должны выглядеть как один элемент (см. оформление сообщения в ВК)
+//
+//      //hBox1.getChildren.add(userNameTextFlow) // помещаем в горизонтальный контейнер hBox1: HBox имя пользователя-собеседника textFlow
+//
+//      hBox.getChildren.add(userNameTextFlow)
+//      hBox.getChildren.add(textFlow) // помещаем в горизонтальный контейнер hBox: HBox сообщение пользователя-собеседника textFlow
+
       //vBox.getChildren.add(hBox)
 
       Platform.runLater(new Runnable(){
@@ -163,9 +251,13 @@ class rootGUIController {
           vBox.getChildren().add(hBox)
         }
       })
+
+      mainChat.chatsHistory.get(0)(selectedUser).append(hBox)
     }
 
 
   def getMessageHistory: VBox = messageHistory
+
+  def getSelectedUser: String = selectedUser
 
 }

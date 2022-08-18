@@ -23,9 +23,8 @@ class inputNameController {
     //println("setUserNameActivated") // отладочный вывод
 
     if(!textUserName.isEmpty){
-      println("ok")
       mainChat.userName = textUserName
-      mainChat.getSetNameUserStage.close()
+      mainChat.getInputNameStage.close()
 
     }
   }
