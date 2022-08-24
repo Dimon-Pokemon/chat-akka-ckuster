@@ -4,11 +4,15 @@ import javafx.event.{ActionEvent, EventHandler}
 import javafx.fxml.FXML
 import javafx.geometry.{Insets, Pos}
 import javafx.scene.control
+import javafx.scene.input.KeyEvent
 import javafx.scene.control.{Button, ScrollPane, TableColumn, TableView, TextField}
 import javafx.scene.layout.{HBox, VBox}
 import javafx.scene.text.{Text, TextFlow}
 import javafx.scene.paint.Color
 import javafx.stage.WindowEvent
+
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 //object rootGUIController{
 //  def addLabel(messageFromClient: String, vBox: VBox) = {
@@ -95,33 +99,40 @@ class rootGUIController {
    * Метод, определяющий операции, производимые при нажатии на крестик
    * @return
    */
-  def closeEventHadler: EventHandler[WindowEvent] = new EventHandler[WindowEvent](){
+  def closeEventHandler: EventHandler[WindowEvent] = new EventHandler[WindowEvent](){
     override def handle(event: WindowEvent): Unit = {
       mainChat.getPrimaryStage.close()
-      mainChat.chatsHistory.get(0).foreach(println)
       System.exit(0)
 
     }
   }
 
+  def sendMessageAfterEnterPressed: EventHandler[KeyEvent] = new EventHandler[KeyEvent]:
+    override def handle(event: KeyEvent): Unit = {
+      if(event.getCode.toString.equals("ENTER")) sendMessage
+    }
 
 
   /**
    * Функционал кнопки
    */
   @FXML
-  private def sendMessage: Unit = {
+   protected def sendMessage: Unit = { //было private
     // получение текста в строке ввода
-    val messageToSend = message.getText
+    val messageToSend = message.getText //LocalTime.now().toString
+    //val time = LocalTime.now().getHour.toString + LocalTime.now().getMinute.toString
+    var t = LocalTime.now() // получаем текущее время в формате часы:минуты:секунды:наносекунды
+    t = t.minusNanos(t.getNano) // форматируем полученное время путем удаления наносекунда, чтобы получить время в формате часы:минуты:секунды
+    val time = t.toString // получаем строковое представление объекта типа LocalTime
 
     // проверка пустоты строки ввода, т.к.
     // пользователь может ничего не вводить и
-    // нажать на кнопку отправки просто так, по приколу
+    // нажать на кнопку отправки просто так
     if(!messageToSend.isEmpty){
       if(typeChat.equals("public")) {
-        mainChat.sendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser)) //mainChat.actor1 !
+        mainChat.sendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser, time)) //mainChat.actor1 !
       }else{
-        mainChat.privateSendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser) )
+        mainChat.privateSendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser, time) )
       }
       // горизонтальный контейнер для упаковывания сообщения пользователя
       var hBox: HBox = new HBox()
@@ -133,7 +144,7 @@ class rootGUIController {
 
       // создание текста для отображения форматирования и
       // последующего отображения в GUI (т.к. с обычной строкой String нельзя работать в fx)
-      val text: Text = new Text(messageToSend)
+      val text: Text = new Text(messageToSend+" "+time)
       // т.к. обычный текст Text имеет скромной форматирование,
       // создается TextFlow, расширяющий возможности форматирования,
       // а главное, позволяющий автоматически переносить длинный текст
@@ -165,12 +176,12 @@ class rootGUIController {
     }
   }
 
-    def createHBox(message: String, user: String): HBox = {
+    def createHBox(message: String, user: String, time: String): HBox = {
       val hBox: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковывается сообщение от пользователя-собеседника
       hBox.setAlignment(Pos.CENTER_LEFT) // позиция hBox на макете (в центре слева)
       hBox.setPadding(new Insets(5, 5, 5, 10))
 
-      val userNameText: Text = new Text(user+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
+      val userNameText: Text = new Text(time+" "+user+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
       val userNameTextFlow: TextFlow = new TextFlow(userNameText) // TextFlow объект из имя пользователя (userNameText) класса Text
       userNameTextFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 10px 0px 0px 10px;")
       userNameTextFlow.setPadding(new Insets(5, 0, 5, 10))
@@ -199,8 +210,8 @@ class rootGUIController {
    * @param messageFromClient сообщение(текст), которое получил актор
    * @param userName имя пользователя, отправившего сообщение актору, получившему сообщение
    */
-    def addLabelIntoChatsHistory(messageFromClient: String, userName: String, senderReference: String): Unit = {
-        val hBox: HBox = createHBox(messageFromClient, userName)
+    def addLabelIntoChatsHistory(messageFromClient: String, userName: String, senderReference: String, time: String): Unit = {
+        val hBox: HBox = createHBox(messageFromClient, userName, time)
         mainChat.chatsHistory.get(0)(senderReference).append(hBox)
     }
 
@@ -212,39 +223,8 @@ class rootGUIController {
    * @param userName имя пользователя, отправившего сообщение актору, получившему сообщение
    * @return
    */
-    def addLabel(messageFromClient: String, vBox: VBox = this.messageHistory, userName: String) = {
-//      val hBox1: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковываться имя пользователя-собеседника
-//      hBox1.setAlignment(Pos.CENTER_LEFT) // позиция hBox1 на макете (в центре слева)
-//      hBox1.setPadding(new Insets(5, 5, 0, 10))
-
-
-      val hBox: HBox = createHBox(messageFromClient, userName)
-//      val hBox: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковывается сообщение от пользователя-собеседника
-//      hBox.setAlignment(Pos.CENTER_LEFT) // позиция hBox на макете (в центре слева)
-//      hBox.setPadding(new Insets(5, 5, 5, 10))
-//
-//      val userNameText: Text = new Text(userName+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
-//      val userNameTextFlow: TextFlow = new TextFlow(userNameText) // TextFlow объект из имя пользователя (userNameText) класса Text
-//      userNameTextFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 10px 0px 0px 10px;")
-//      userNameTextFlow.setPadding(new Insets(5, 0, 5, 10))
-//      userNameText.setFill(Color.rgb(15, 125, 242))
-//
-//      val text: Text  = new Text(messageFromClient) // Text объект из сообщения пользователя-собеседника (тот, кто прислал новое сообщение)
-//      val textFlow: TextFlow = new TextFlow(text)  // TextFlow объект из сообщения пользователя-собеседника
-//      textFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 0px 10px 10px 0px;") // установка стиля textFlow
-//      textFlow.setPadding(new Insets(5, 10, 5, 0))
-//
-//      // два TextFlow, один содержит имя отправителя сообщения (собеседник), а второй текст сообщения отправителя
-//      // располагаются они в HBox, который, в свою очередь, располагается в VBox
-//      // эти два TextFlow должны выглядеть как один элемент (см. оформление сообщения в ВК)
-//
-//      //hBox1.getChildren.add(userNameTextFlow) // помещаем в горизонтальный контейнер hBox1: HBox имя пользователя-собеседника textFlow
-//
-//      hBox.getChildren.add(userNameTextFlow)
-//      hBox.getChildren.add(textFlow) // помещаем в горизонтальный контейнер hBox: HBox сообщение пользователя-собеседника textFlow
-
-      //vBox.getChildren.add(hBox)
-
+    def addLabel(messageFromClient: String, vBox: VBox = this.messageHistory, userName: String, time: String) = {
+      val hBox: HBox = createHBox(messageFromClient, userName, time)
       Platform.runLater(new Runnable(){
         override def run(): Unit = {
           //vBox.getChildren().add(hBox1)
