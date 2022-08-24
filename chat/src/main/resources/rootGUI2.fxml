@@ -9,12 +9,11 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 
-
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="rootGUIController">
    <left>
       <TableView fx:id="contacts" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
         <columns>
-          <TableColumn prefWidth="199.0" text="Контакты" />
+          <TableColumn fx:id="contactsColumn" prefWidth="199.0" text="Контакты" />
         </columns>
       </TableView>
    </left>
