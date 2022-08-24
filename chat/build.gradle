@@ -4,6 +4,8 @@ plugins {
     id 'org.openjfx.javafxplugin' version '0.0.10'
 }
 
+//applicationDefaultJvmArgs = ["--module-path ${PATH_TO_FX} --add-modules javafx.controls,javafx.fxml "]
+
 group 'org.example'
 version '1.0-SNAPSHOT'
 
@@ -45,3 +47,5 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+mainClassName = "mainChat"
