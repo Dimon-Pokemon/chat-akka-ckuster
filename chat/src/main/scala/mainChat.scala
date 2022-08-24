@@ -282,8 +282,8 @@ class mainChat extends Application{
   var actor1: ActorRef = _ // ссылка на актора
   private var myHost: String = "127.0.0.1"
   private var myPort: Integer = 2559
-  private var hostToConnect: String = myHost
-  private var portToConnect: Integer = myPort
+  private var hostToConnect: String = "127.0.0.1"
+  private var portToConnect: Integer = 2559
   var userName: String = "actor1"
 
   /**
@@ -466,7 +466,7 @@ class mainChat extends Application{
          hostname="$myHost"
          port=$myPort}
 
-         cluster.seed-nodes=["akka://ActorSystem@$hostToConnect:$portToConnect"]
+         akka.cluster.seed-nodes=["akka://ActorSystem@$hostToConnect:$portToConnect"]
         """)
     val conf = conf2.withFallback(conf1)
 

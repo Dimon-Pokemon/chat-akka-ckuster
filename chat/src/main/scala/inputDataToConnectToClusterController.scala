@@ -127,6 +127,8 @@ class inputDataToConnectToClusterController {
       if(createClusterOnTheHost.matches(reg) && isCurrentDigit(createClusterOnThePort)){
         mainChat.setMyHost(createClusterOnTheHost)
         mainChat.setMyPort(createClusterOnThePort.toInt)
+        mainChat.setHostToConnect(createClusterOnTheHost)
+        mainChat.setPortToConnect(createClusterOnThePort.toInt)
 
         mainChat.getInputDataToConnectToClusterStage.close()
       }else{
@@ -141,9 +143,6 @@ class inputDataToConnectToClusterController {
       val contentText = "Ни одно из полей ввода не должно быть пустым!"
       alert(title, headerText, contentText)
     }
-
-    println(mainChat.getMyPort)
-    println(mainChat.getPortToConnect)
   }
 
 
