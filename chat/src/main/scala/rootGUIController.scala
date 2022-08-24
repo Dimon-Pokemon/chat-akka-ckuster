@@ -117,7 +117,7 @@ class rootGUIController {
    * Функционал кнопки
    */
   @FXML
-   protected def sendMessage: Unit = { //было private
+  protected def sendMessage: Unit = { //было private
     // получение текста в строке ввода
     val messageToSend = message.getText //LocalTime.now().toString
     //val time = LocalTime.now().getHour.toString + LocalTime.now().getMinute.toString
@@ -136,16 +136,17 @@ class rootGUIController {
       }
       // горизонтальный контейнер для упаковывания сообщения пользователя
       var hBox: HBox = new HBox()
-      // определение свойств контейнера:
+      var hBoxForTime = createHBoxForTime("RIGHT", time)
+      // определение свойств контейнеров:
       // - отображение сообщения справа
       // - границы
       hBox.setAlignment(Pos.CENTER_RIGHT)
-      hBox.setPadding(new Insets(5, 5, 5, 10))
+      hBox.setPadding(new Insets(0, 5, 5, 10))
 
       // создание текста для отображения форматирования и
       // последующего отображения в GUI (т.к. с обычной строкой String нельзя работать в fx)
-      val text: Text = new Text(messageToSend+" "+time)
-      // т.к. обычный текст Text имеет скромной форматирование,
+      val text: Text = new Text(messageToSend)
+      // т.к. обычный текст Text имеет ограниченное форматирование,
       // создается TextFlow, расширяющий возможности форматирования,
       // а главное, позволяющий автоматически переносить длинный текст
       // на другую строку
@@ -159,9 +160,12 @@ class rootGUIController {
       // тут что-то непонятное. Зачем использовать Text, если есть TextField?
       text.setFill(Color.color(0.934, 0.945, 0.996))
 
+      messageHistory.getChildren.add(hBoxForTime)
       hBox.getChildren().add(textFlow)
       messageHistory.getChildren.add(hBox)
 
+
+      mainChat.chatsHistory(selectedUser).append(hBoxForTime)
       mainChat.chatsHistory(selectedUser).append(hBox)
 
       // далее отправляем сообщение другим пользователям
@@ -171,17 +175,49 @@ class rootGUIController {
       // При определении внутри mainChat и класса-актора actor, и кейс класса send jvm выбрасывает ошибку
 
 
-      // в конце очищаем поле ввода
+      // в конце очищаем поле ввода TextField
       message.clear()
     }
   }
 
-    def createHBox(message: String, user: String, time: String): HBox = {
+
+  /**
+   * Метод для создания графического элемента-контейнера HBox, который содержит время получения полученного сообщения
+   * и который будет отображаться в messageHistory: VBox, т.е. будет отображаться в самом диалоге
+   * @param pos положение HBox в контейнере( в данном случае в messageHistory: VBox)
+   * @param time строковое представление объекта LocalTime времени
+   * @return контейнер HBox
+   */
+  def createHBoxForTime(pos: String, time: String): HBox = {
+    val hBox: HBox = new HBox()
+    if(pos.equals("RIGHT")) {
+      hBox.setAlignment(Pos.CENTER_RIGHT)
+      hBox.setPadding(new Insets(10, 15, 0, 10))
+    }else{
+      hBox.setAlignment(Pos.CENTER_LEFT)
+      hBox.setPadding(new Insets(10, 10, 0, 15))
+    }
+    val timeText: Text = new Text(time)
+    hBox.getChildren().add(timeText)
+
+    hBox
+
+  }
+
+
+  /**
+   * Метод для создания графического элемента-контейнера HBox, который содержит текст полученного сообщения и имя его отправителя
+   * и который будет отображаться в messageHistory: VBox, т.е. будет отображаться в самом диалоге
+   * @param message текст полученного сообщения
+   * @param user имя отправителя
+   * @return контейнер HBox
+   */
+  def createHBox(message: String, user: String): HBox = {
       val hBox: HBox = new HBox() // новый горизонтальный контейнер типа HBox, в который будет упаковывается сообщение от пользователя-собеседника
       hBox.setAlignment(Pos.CENTER_LEFT) // позиция hBox на макете (в центре слева)
       hBox.setPadding(new Insets(5, 5, 5, 10))
 
-      val userNameText: Text = new Text(time+" "+user+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
+      val userNameText: Text = new Text(user+": ") // Text объект из имя пользователя (userName), который ПРИСЛАЛ сообщение
       val userNameTextFlow: TextFlow = new TextFlow(userNameText) // TextFlow объект из имя пользователя (userNameText) класса Text
       userNameTextFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 10px 0px 0px 10px;")
       userNameTextFlow.setPadding(new Insets(5, 0, 5, 10))
@@ -194,7 +230,7 @@ class rootGUIController {
 
       // два TextFlow, один содержит имя отправителя сообщения (собеседник), а второй текст сообщения отправителя
       // располагаются они в HBox, который, в свою очередь, располагается в VBox
-      // эти два TextFlow должны выглядеть как один элемент (см. оформление сообщения в ВК)
+      // эти два TextFlow должны выглядеть как один элемент (как оформление сообщения в ВК)
 
       //hBox1.getChildren.add(userNameTextFlow) // помещаем в горизонтальный контейнер hBox1: HBox имя пользователя-собеседника textFlow
 
@@ -202,7 +238,7 @@ class rootGUIController {
       hBox.getChildren.add(textFlow) // помещаем в горизонтальный контейнер hBox: HBox сообщение пользователя-собеседника textFlow
 
       hBox
-    }
+  }
 
   /**
    * Функция добавляет в chatsHistory сообщение, полученное актором, но НЕ ОТОБРАЖАЕТ его на экране.
@@ -210,10 +246,12 @@ class rootGUIController {
    * @param messageFromClient сообщение(текст), которое получил актор
    * @param userName имя пользователя, отправившего сообщение актору, получившему сообщение
    */
-    def addLabelIntoChatsHistory(messageFromClient: String, userName: String, senderReference: String, time: String): Unit = {
-        val hBox: HBox = createHBox(messageFromClient, userName, time)
-        mainChat.chatsHistory(senderReference).append(hBox)
-    }
+  def addLabelIntoChatsHistory(messageFromClient: String, userName: String, senderReference: String, time: String): Unit = {
+    val hBox: HBox = createHBox(messageFromClient, userName)
+    val hBoxForTime: HBox = createHBoxForTime("LEFT", time)
+    mainChat.chatsHistory(senderReference).append(hBoxForTime)
+    mainChat.chatsHistory(senderReference).append(hBox)
+  }
 
 
   /**
@@ -223,17 +261,20 @@ class rootGUIController {
    * @param userName имя пользователя, отправившего сообщение актору, получившему сообщение
    * @return
    */
-    def addLabel(messageFromClient: String, vBox: VBox = this.messageHistory, userName: String, time: String) = {
-      val hBox: HBox = createHBox(messageFromClient, userName, time)
-      Platform.runLater(new Runnable(){
-        override def run(): Unit = {
-          //vBox.getChildren().add(hBox1)
-          vBox.getChildren().add(hBox)
-        }
-      })
+  def addLabel(messageFromClient: String, vBox: VBox = this.messageHistory, userName: String, time: String) = {
+    val hBox: HBox = createHBox(messageFromClient, userName)
+    val hBoxForTime: HBox = createHBoxForTime("LEFT", time)
+    Platform.runLater(new Runnable(){
+      override def run(): Unit = {
+        //vBox.getChildren().add(hBox1)
+        vBox.getChildren().add(hBoxForTime)
+        vBox.getChildren().add(hBox)
+      }
+    })
 
-      mainChat.chatsHistory(selectedUser).append(hBox)
-    }
+    mainChat.chatsHistory(selectedUser).append(hBoxForTime)
+    mainChat.chatsHistory(selectedUser).append(hBox)
+  }
 
 
   def getMessageHistory: VBox = messageHistory
