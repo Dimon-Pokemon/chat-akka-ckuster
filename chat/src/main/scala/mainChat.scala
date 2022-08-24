@@ -34,22 +34,13 @@ case class privateMessage(message: (String, ActorRef, String, String, String))
 case class setConnectionList(connList: ObservableList[user])
 
 //case class setChatsHistory(chatsHistory: HashMap[String, ObservableList[HBox]] )
-//case class setChatsHistory(chatsHist: HashMap[String, ArrayBuffer[HBox]])
-case class setChatsHistory(chatsHist: ObservableList[HashMap[String, ArrayBuffer[HBox]]])
+case class setChatsHistory(chatsHist: HashMap[String, ArrayBuffer[HBox]])
+//case class setChatsHistory(chatsHist: ObservableList[HashMap[String, ArrayBuffer[HBox]]])
 
 case class myNameIs(name: String, host: String, port: Integer, actorReference: ActorRef)
 
 case class setUserNameActor(uN: String)
 
-
-
-//case class privateMessage(message: (String, ActorRef, String, String))
-
-//case class myNameIs(data: (String, String, Integer, String))
-
-//case class giveMeYouName()
-//
-//case class hereIsMyName(name: String)
 
 
 class actor extends Actor with ActorLogging {
@@ -61,8 +52,8 @@ class actor extends Actor with ActorLogging {
   var connectionList: ObservableList[user] = _
 
   //var chatsHistory: HashMap[String, ObservableList[HBox]] = _
-  //var chatsHistory: HashMap[String, ArrayBuffer[HBox]] = _
-  var chatsHistory: ObservableList[HashMap[String, ArrayBuffer[HBox]]] = null
+  var chatsHistory: HashMap[String, ArrayBuffer[HBox]] = _
+  //var chatsHistory: ObservableList[HashMap[String, ArrayBuffer[HBox]]] = null
 
   //var history: Map[String -> ObservableList[TextFlow]] = null
 
@@ -133,23 +124,6 @@ class actor extends Actor with ActorLogging {
     (0, "0")
   }
 
-//  /**
-//   * Функция ищет в списке подключений userConnectionList: ObservableList[user] объект user с атрибутом attribute,
-//   * который равен параметру value: String. Возвращает true, если найден такой объект user, и false - в противном случае
-//   * @param userConnectionList список с объектами user
-//   * @param actorReference значение атрибута объекта user, которое требуется найти в списке userConnectionList
-//   */
-//  def searchDuplicate(userConnectionList: ObservableList[user], actorReference: String): Boolean = {
-//    val iteratorUserConnectionList = userConnectionList.iterator()
-//    while(iteratorUserConnectionList.hasNext){
-//      val element: user = iteratorUserConnectionList.next
-//      if(element.getActorReference.equals(actorReference)) {
-//        return true // без return выдает ошибку
-//      }
-//    }
-//    false
-//  }
-
 
   def receive = LoggingReceive {
 //    case setChatsHistory(chatsHistory: HashMap[String, ObservableList[HBox]]) =>
@@ -160,11 +134,11 @@ class actor extends Actor with ActorLogging {
 //      val selectedChatHistory: ArrayBuffer[HBox] = ArrayBuffer.empty[HBox]
 //      chatsHistory = HashMap(usr.getActorReference->selectedChatHistory)
 //      println(chatsHistory("publicChat"))
-    case setChatsHistory(chatsHist: ObservableList[HashMap[String, ArrayBuffer[HBox]]]) =>
+    case setChatsHistory(chatsHist: HashMap[String, ArrayBuffer[HBox]]) => //chatsHist: ObservableList[HashMap[String, ArrayBuffer[HBox]]]
       chatsHistory = chatsHist
       val usr: user = new user("Общий чат", "publicChat", 0000, "publicChat")
       val selectedChatHistory: ArrayBuffer[HBox] = ArrayBuffer.empty[HBox] // пустой массив контейнеров HBox.
-      chatsHistory.get(0).update(usr.getActorReference, selectedChatHistory) // создание новой пары ключ(ссылка на актора)-значение(массив selectedChatHistory)
+      chatsHistory.update(usr.getActorReference, selectedChatHistory) // создание новой пары ключ(ссылка на актора)-значение(массив selectedChatHistory)
     case setConnectionList(connList: ObservableList[user]) =>
       connectionList = connList
       val usr: user = new user("Общий чат", "publicChat", 0000, "publicChat")
@@ -181,8 +155,8 @@ class actor extends Actor with ActorLogging {
         connectionList.add(usr) // добавление нового пользователя в список подключений
         //val selectedChatHistory: ObservableList[HBox] = FXCollections.observableArrayList()
         val selectedChatHistory: ArrayBuffer[HBox] = ArrayBuffer.empty[HBox]
-        chatsHistory.get(0).update(usr.getActorReference, selectedChatHistory)
-        println(chatsHistory.get(0)("publicChat"))
+        chatsHistory.update(usr.getActorReference, selectedChatHistory)
+        println(chatsHistory("publicChat"))
       }
     case s: rootGUIController => controller = s // если актор получает объект типа rootGUIController, то этот объект - контроллер => устанавливаем controller = s
     case publicMessage(message: (String, ActorRef, String, String, String)) => // если актор получает кортеж(нужно уточнить) из трех элементов String, ActorRef, String, String, то этот кортеж - данные, отправленные актором, на который подписан текущий актор
@@ -269,7 +243,7 @@ class actor extends Actor with ActorLogging {
       connectionList.remove(index.toInt) // удаление объекта user с адресом addressActorWhoExit
 
       //println(chatsHistory.get(0)(indexAndActorReference._2))
-      chatsHistory.get(0).remove(indexAndActorReference._2) // удаление истории сообщений с пользователем user с узла с адресом addressActorWhoExit
+      chatsHistory.remove(indexAndActorReference._2) // удаление истории сообщений с пользователем user с узла с адресом addressActorWhoExit
 
 
       println("###################################################################################################################################################################\n")
@@ -302,9 +276,9 @@ class mainChat extends Application{
   private var controller: rootGUIController = _
 
   private val connectionList: ObservableList[user] = FXCollections.observableArrayList()
-  //val chatsHistory: HashMap[String, ObservableList[HBox]] = HashMap[String, ObservableList[HBox]]()
-  var chatsHistory: ObservableList[HashMap[String, ArrayBuffer[HBox]]] = FXCollections.observableArrayList()
-  chatsHistory.add(HashMap[String, ArrayBuffer[HBox]]())
+  var chatsHistory: HashMap[String, ArrayBuffer[HBox]] = HashMap[String, ArrayBuffer[HBox]]()
+//  var chatsHistory: ObservableList[HashMap[String, ArrayBuffer[HBox]]] = FXCollections.observableArrayList()
+//  chatsHistory.add(HashMap[String, ArrayBuffer[HBox]]())
   var actor1: ActorRef = _ // ссылка на актора
   private var myHost: String = "127.0.0.1"
   private var myPort: Integer = 2559

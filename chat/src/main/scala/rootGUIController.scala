@@ -85,13 +85,13 @@ class rootGUIController {
       typeChat = "public"
       selectedUser = "publicChat"
       messageHistory.getChildren.clear()
-      mainChat.chatsHistory.get(0)(selectedUser).foreach(messageHistory.getChildren.add)
+      mainChat.chatsHistory(selectedUser).foreach(messageHistory.getChildren.add)
     }else{
       typeChat = "private"
       selectedUser = user.getActorReference
       //mainChat.unsubscribing()
       messageHistory.getChildren.clear()
-      mainChat.chatsHistory.get(0)(selectedUser).foreach(messageHistory.getChildren.add)
+      mainChat.chatsHistory(selectedUser).foreach(messageHistory.getChildren.add)
     }
   }
 
@@ -162,7 +162,7 @@ class rootGUIController {
       hBox.getChildren().add(textFlow)
       messageHistory.getChildren.add(hBox)
 
-      mainChat.chatsHistory.get(0)(selectedUser).append(hBox)
+      mainChat.chatsHistory(selectedUser).append(hBox)
 
       // далее отправляем сообщение другим пользователям
       // в классе mainChat написана функция sendingMessage, которая отправляет актору сообщение с кейс классом case class send(message: (String, ActorRef))
@@ -212,7 +212,7 @@ class rootGUIController {
    */
     def addLabelIntoChatsHistory(messageFromClient: String, userName: String, senderReference: String, time: String): Unit = {
         val hBox: HBox = createHBox(messageFromClient, userName, time)
-        mainChat.chatsHistory.get(0)(senderReference).append(hBox)
+        mainChat.chatsHistory(senderReference).append(hBox)
     }
 
 
@@ -232,7 +232,7 @@ class rootGUIController {
         }
       })
 
-      mainChat.chatsHistory.get(0)(selectedUser).append(hBox)
+      mainChat.chatsHistory(selectedUser).append(hBox)
     }
 
 
