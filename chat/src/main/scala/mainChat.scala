@@ -1,4 +1,4 @@
-import javafx.application.Application
+import javafx.application.{Application, Platform}
 import javafx.collections.FXCollections
 import javafx.fxml.FXMLLoader
 import javafx.scene.Scene
@@ -214,17 +214,7 @@ class actor extends Actor with ActorLogging {
         println("###################################################################################################################################################################\n")
         println("New node is up!\n")
         println("###################################################################################################################################################################")
-        //mediator ! DistributedPubSubMediator.Subscribe(sender().path.toString, self)
         sleep(2000) // КОСТЫЛЬ. ОГРОМНЫЙ КОСТЫЛЬ
-        // Какая идея? Чтобы получить имя пользователя нового узла, подключившегося к кластеру
-        // требуется отослать подключившемуся актору ? с просьбой отослать свое имя пользователя userName
-        // но как это сделать, имея member, я не знаю
-        // класс user описывает информацию о новом подключении
-        //val newUserName: String = actorCluster.
-
-        //self ! myNameIs((userName, actorCluster.selfAddress.getHost().get, actorCluster.selfAddress.getPort().get, self.toString))
-//        host = member.address.getHost().toString
-//        port = member.address.getPort().get()
 
         mediatorForConnectionList ! DistributedPubSubMediator.Publish("connectionList", myNameIs(userName, actorCluster.selfAddress.getHost().get, actorCluster.selfAddress.getPort().get, self))
 
@@ -240,9 +230,20 @@ class actor extends Actor with ActorLogging {
 
       val index: Integer = indexAndActorReference._1 // индекс объекта user из списка connectionList с адресом addressActorWhoExit
 
-      connectionList.remove(index.toInt) // удаление объекта user с адресом addressActorWhoExit
 
-      //println(chatsHistory.get(0)(indexAndActorReference._2))
+      Platform.runLater(new Runnable(){
+        override def run(): Unit = {
+          connectionList.remove(index.toInt)
+        }
+      })
+
+//      connectionList.forEach(println)
+//      val iter = connectionList.iterator()
+//      while(iter.hasNext){
+//        val u = iter.next()
+//        println(u.getActorReference)
+//      }
+
       chatsHistory.remove(indexAndActorReference._2) // удаление истории сообщений с пользователем user с узла с адресом addressActorWhoExit
 
 
@@ -268,7 +269,7 @@ object mainApp{
 
 class mainChat extends Application{
 
-  private val iconUrl = "icon.png"
+  private val iconUrl = "n/icon2.png"
   private var primaryStage: Stage = _ // сцена чата
   private var inputDataToConnectToClusterStage: Stage = _
   private var inputNameStage: Stage = _ // сцена для ввода имени пользователя
@@ -277,93 +278,43 @@ class mainChat extends Application{
 
   private val connectionList: ObservableList[user] = FXCollections.observableArrayList()
   var chatsHistory: HashMap[String, ArrayBuffer[HBox]] = HashMap[String, ArrayBuffer[HBox]]()
-//  var chatsHistory: ObservableList[HashMap[String, ArrayBuffer[HBox]]] = FXCollections.observableArrayList()
-//  chatsHistory.add(HashMap[String, ArrayBuffer[HBox]]())
   var actor1: ActorRef = _ // ссылка на актора
   private var myHost: String = "127.0.0.1"
   private var myPort: Integer = 2559
-  private var hostToConnect: String = "127.0.0.1"
-  private var portToConnect: Integer = 2559
+  private var hostToConnect: String = "127.0.0.1" // хост для подключения к кластеру
+  private var portToConnect: Integer = 2559 // порт для подключения к кластеру
   var userName: String = "actor1"
 
-  /**
-   * Геттер. Возвращает переменную myHost
-   * @return myHost: String
-   */
   def getMyHost: String = myHost
 
-  /**
-   * Сеттер. Устанавливает новое значение переменной myHost
-   * @param newValue новое значение
-   */
   def setMyHost(newValue: String): Unit = {
     this.myHost = newValue
   }
 
-  /**
-   * Геттер. Возвращает переменную myPort
-   * @return myPort: Integer
-   */
   def getMyPort: Integer = myPort
 
-  /**
-   * Сеттер. Устанавливает новое значение переменной myPort
-   * @param newValue новое значение
-   */
   def setMyPort(newValue: Integer): Unit = {
     this.myPort = newValue
   }
 
-  /**
-   * Геттер. Возвращает значение переменной hostToConnect
-   * @return hostToConnect: String
-   */
   def getHostToConnect: String = hostToConnect
 
-  /**
-   * Сеттер. Устанавливает новое значение переменной hostToConnect
-   * @param newValue новое значение
-   */
   def setHostToConnect(newValue: String): Unit = {
     this.hostToConnect = newValue
   }
 
-  /**
-   * Геттер. Возвращает значение переменной portToConnect
-   * @return portToConnect: Integer
-   */
   def getPortToConnect: Integer = portToConnect
 
-  /**
-   * Сеттер. Устанавливает новое значение переменной portToConnect
-   * @param newValue новое значение
-   */
   def setPortToConnect(newValue: Integer) = {
     this.portToConnect = newValue
   }
 
-  /**
-   * Геттер. Возвращает корневую сцену inputNameStage
-   * @return inputNameStage: Stage
-   */
   def getInputNameStage: Stage = inputNameStage
 
-  /**
-   * Геттер. Возвращает корневую сцену primaryStage
-   * @return primaryStage: Stage
-   */
   def getPrimaryStage: Stage = primaryStage
 
-  /**
-   * Геттер. Возвращает корневую сцену inputDataToConnectToClusterStage
-   * @return inputDataToConnectToClusterStage: Stage
-   */
   def getInputDataToConnectToClusterStage: Stage = inputDataToConnectToClusterStage
 
-  /**
-   * Геттер. Возвращает список подключений
-   * @return primaryStage: Stage
-   */
   def getConnectionList: ObservableList[user] = connectionList // функция возврата массива connectionList
 
 
@@ -372,8 +323,6 @@ class mainChat extends Application{
    * @param message кортеж из трех элементов - текста сообщения(из GUI элемента TextField), ссылки на актора отправителя и имени отправителя
    */
   def sendingMessage(message: (String, ActorRef, String, String, String)): Unit = {
-    //val message2 = (message._1, message._2, controller)
-    //val vbbox: VBox = controller.getMessageStory
     actor1 ! send(message)
   }
 
@@ -402,6 +351,11 @@ class mainChat extends Application{
     sleep(500) // подумать, нужно ли это
   }
 
+
+  /**
+   * Метод инициализации стартового окна, в котором требуется ввести данные для либо создания сеанса чата, либо для
+   * подключения к уже созданному сеансу
+   */
   def initInputAndSetDataToConnectToCluster(): Unit = {
     try{
       val loader: FXMLLoader = new FXMLLoader()
@@ -429,6 +383,9 @@ class mainChat extends Application{
     }
   }
 
+  /**
+   * Метод инициализации окна ввода имени пользователя, в котором требуется ввести имя пользователя
+   */
   def initInputAndSetNameUser(): Unit = {
     try{
       val loader: FXMLLoader = new FXMLLoader
@@ -459,6 +416,9 @@ class mainChat extends Application{
 
   }
 
+  /**
+   * Метод инициализации кластера
+   */
   def initCluster(): Unit = {
     val conf1 = ConfigFactory.load() // загружаем основной конфигурационный файл
     val conf2 = ConfigFactory.parseString( // конфигурация на основе введенных пользователем данных
@@ -485,6 +445,9 @@ class mainChat extends Application{
 
   }
 
+  /**
+   * Метод инициализации основного окна, содержащего список пользователей, диалог и т.д.
+   */
   def initRootLayout(): Unit = {
     try{
       val loader: FXMLLoader = new FXMLLoader

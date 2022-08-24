@@ -14,30 +14,6 @@ import javafx.stage.WindowEvent
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-//object rootGUIController{
-//  def addLabel(messageFromClient: String, vBox: VBox) = {
-//    val hBox: HBox = new HBox()
-//    hBox.setAlignment(Pos.CENTER_LEFT)
-//    hBox.setPadding(new Insets(5, 5, 5, 10))
-//
-//    val text: Text  = new Text(messageFromClient)
-//    val textFlow: TextFlow = new TextFlow(text)
-//    textFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 20px")
-//    textFlow.setPadding(new Insets(5, 10, 5, 10))
-//
-//    hBox.getChildren.add(textFlow)
-//
-//    vBox.getChildren.add(hBox)
-//
-//    Platform.runLater(new Runnable(){
-//      override def run(): Unit = {
-//        vBox.getChildren().add(hBox)
-//      }
-//    })
-//  }
-//
-//}
-
 class rootGUIController {
   @FXML
   private var button: Button = null
@@ -66,22 +42,40 @@ class rootGUIController {
 
   @FXML
   private def initialize(): Unit = {
-  messageHistory.heightProperty().addListener((observable, oldValue, newValue) => scroll.setVvalue(newValue.asInstanceOf[Double]))
-  contactsColumn.setCellValueFactory((cellData) => cellData.getValue().nameProperty)
+    try {
+      messageHistory.heightProperty().addListener((observable, oldValue, newValue) => scroll.setVvalue(newValue.asInstanceOf[Double]))
+      contactsColumn.setCellValueFactory((cellData) => cellData.getValue().nameProperty)
 
-  contacts.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) => change(newValue))
+      contacts.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) => change(newValue))
+    }catch {
+      case e: IllegalStateException => println("Возникла ошибка при выходе одного из узлов из кластера!")
+    }
   }
 
+  /**
+   * Метод для получения ссылки на главную часть приложения mainChat и
+   * для установки модели данных для таблицы contacts
+   * @param mainChat ссылка на главный класс
+   */
   def setMainChat(mainChat: mainChat): Unit = {
     this.mainChat = mainChat
 
     contacts.setItems(mainChat.getConnectionList)
   }
 
+
+  /**
+   * Функция, вызываемая при выборе пользователем конкретного контакта из списка контактов (в GUI).
+   * Очищает chatsHistory от сообщений из диалога с выбранным ранее контактом из списка контактов, а затем
+   * заполняет chatsHistory сообщениями из диалога с тем контактом, который выбран на данный момент.
+   * Сообщения берутся из map-структуры messageHistory, которая хранит историю сообщений со всеми участниками чата
+   * в виде пары "ссылка_на_актора":"массив_с_сообщениями_в_виде_HBox"
+   * @param user - выбранный объект типа user, содержащий имя(поле name), ip-адрес(поле ip) и хост(поле host) узла на котором создан,
+   * ссылка на актора(поле actorReference).
+   */
   def change(user: user): Unit ={
     println("Selected user " + user.getName + ". His ActorReference is " + user.getActorReference)
     if(user.getActorReference.equals("publicChat")){
-      //mainChat.subscribing()
       typeChat = "public"
       selectedUser = "publicChat"
       messageHistory.getChildren.clear()
@@ -89,7 +83,6 @@ class rootGUIController {
     }else{
       typeChat = "private"
       selectedUser = user.getActorReference
-      //mainChat.unsubscribing()
       messageHistory.getChildren.clear()
       mainChat.chatsHistory(selectedUser).foreach(messageHistory.getChildren.add)
     }
@@ -101,12 +94,16 @@ class rootGUIController {
    */
   def closeEventHandler: EventHandler[WindowEvent] = new EventHandler[WindowEvent](){
     override def handle(event: WindowEvent): Unit = {
-      mainChat.getPrimaryStage.close()
-      System.exit(0)
+      mainChat.getPrimaryStage.close() // закрытие окна
+      System.exit(0) // завершение работы программы
 
     }
   }
 
+  /**
+   * Функция вызывает метод sendMessage при возникновении события нажатия клавиши Enter
+   * @return EventHandler[KeyEvent]
+   */
   def sendMessageAfterEnterPressed: EventHandler[KeyEvent] = new EventHandler[KeyEvent]:
     override def handle(event: KeyEvent): Unit = {
       if(event.getCode.toString.equals("ENTER")) sendMessage
@@ -266,7 +263,6 @@ class rootGUIController {
     val hBoxForTime: HBox = createHBoxForTime("LEFT", time)
     Platform.runLater(new Runnable(){
       override def run(): Unit = {
-        //vBox.getChildren().add(hBox1)
         vBox.getChildren().add(hBoxForTime)
         vBox.getChildren().add(hBox)
       }
