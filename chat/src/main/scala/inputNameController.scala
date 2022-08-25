@@ -32,7 +32,11 @@ class inputNameController {
 
     }
   }
-
+  
+  /**
+   * Функция вызывает метод setUserName при возникновении события нажатия клавиши Enter
+   * @return EventHandler[KeyEvent]
+   */
   def sendUserNameAfterEnterPressed: EventHandler[KeyEvent] = new EventHandler[KeyEvent]:
     override def handle(event: KeyEvent): Unit = {
       if(event.getCode.toString.equals("ENTER")) setUserName
@@ -41,7 +45,6 @@ class inputNameController {
   @FXML
   protected def setUserName: Unit = {
     val textUserName = userName.getText
-    //println("setUserNameActivated") // отладочный вывод
 
     if(!textUserName.isEmpty){
       mainChat.userName = textUserName

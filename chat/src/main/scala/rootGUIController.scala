@@ -16,10 +16,10 @@ import java.time.format.DateTimeFormatter
 
 class rootGUIController {
   @FXML
-  private var button: Button = null
+  private var button: Button = null // кнопка для отправки сообщения "send"
 
   @FXML
-  private var message: TextField = null
+  private var message: TextField = null // текстовое поле ввода
 
   @FXML
   private var messageHistory: VBox = null // сообщения текущего чата( не путать с chatsHistory - ВСЕ сообщения со ВСЕХ чатов)
@@ -28,16 +28,16 @@ class rootGUIController {
   private var scroll: ScrollPane = null
 
   @FXML
-  private var contacts: TableView[user] = null
+  private var contacts: TableView[user] = null // таблица для отображения списка подключенных пользователей с которыми можно общаться (т.е. список чатов)
 
   @FXML
-  private var contactsColumn: TableColumn[user, String] = null
+  private var contactsColumn: TableColumn[user, String] = null // столбец таблицы contacts для отображения списка подключенных пользователей с которыми можно общаться (т.е. список чатов)
 
-  private var mainChat: mainChat = null
+  private var mainChat: mainChat = null // ссылка на главный класс mainChat
 
-  private var typeChat: String = "public"
+  private var typeChat: String = "public" // тип выбранного чата. По умолчанию это общий чат
   
-  private var selectedUser: String = "publicChat"
+  private var selectedUser: String = "publicChat" // ссылка на актора выбранного из таблицы contacts пользователя. Если выбран общий чат, равен "publicChat"
 
 
   @FXML
@@ -117,18 +117,23 @@ class rootGUIController {
   protected def sendMessage: Unit = { //было private
     // получение текста в строке ввода
     val messageToSend = message.getText //LocalTime.now().toString
-    //val time = LocalTime.now().getHour.toString + LocalTime.now().getMinute.toString
+
+    // Т.к. чат работает в локальной сети, то это значит, что все компьютеры находятся в одном часовом поясе
     var t = LocalTime.now() // получаем текущее время в формате часы:минуты:секунды:наносекунды
-    t = t.minusNanos(t.getNano) // форматируем полученное время путем удаления наносекунда, чтобы получить время в формате часы:минуты:секунды
+    t = t.minusNanos(t.getNano) // форматируем полученное время путем вычитания наносекунд, чтобы получить время в формате чч:мм:сс
+    t = t.minusSeconds(t.getSecond) // форматируем полученное время путем вычитания секунд, чтобы получить время в формате чч:мм
     val time = t.toString // получаем строковое представление объекта типа LocalTime
 
     // проверка пустоты строки ввода, т.к.
     // пользователь может ничего не вводить и
     // нажать на кнопку отправки просто так
     if(!messageToSend.isEmpty){
+      // отправляем сообщение в зависимости от выбранного типа чата
       if(typeChat.equals("public")) {
-        mainChat.sendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser, time)) //mainChat.actor1 !
+        // отправка сообшения в личный чат
+        mainChat.sendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser, time))
       }else{
+        // отправка личного сообщения
         mainChat.privateSendingMessage((messageToSend, mainChat.actor1, mainChat.userName, selectedUser, time) )
       }
       // горизонтальный контейнер для упаковывания сообщения пользователя
@@ -146,7 +151,7 @@ class rootGUIController {
       // т.к. обычный текст Text имеет ограниченное форматирование,
       // создается TextFlow, расширяющий возможности форматирования,
       // а главное, позволяющий автоматически переносить длинный текст
-      // на другую строку
+      // на следующую строку
       val textFlow: TextFlow = new TextFlow(text)
 
       // цвет текста
@@ -154,7 +159,7 @@ class rootGUIController {
 
       // установка отступов
       textFlow.setPadding(new Insets(5, 10, 5, 10))
-      // тут что-то непонятное. Зачем использовать Text, если есть TextField?
+      // тут что-то непонятное. Зачем использовать устанавливать цвет для text: Text, если есть textFlow: TextFlow?
       text.setFill(Color.color(0.934, 0.945, 0.996))
 
       messageHistory.getChildren.add(hBoxForTime)
@@ -162,17 +167,10 @@ class rootGUIController {
       messageHistory.getChildren.add(hBox)
 
 
-      mainChat.chatsHistory(selectedUser).append(hBoxForTime)
-      mainChat.chatsHistory(selectedUser).append(hBox)
+      mainChat.chatsHistory(selectedUser).append(hBoxForTime) // добавляем HBox, содержащий время, в историю сообщений
+      mainChat.chatsHistory(selectedUser).append(hBox) // добавляем HBox, содержащий отформатированный текст сообщения, в историю сообщений
 
-      // далее отправляем сообщение другим пользователям
-      // в классе mainChat написана функция sendingMessage, которая отправляет актору сообщение с кейс классом case class send(message: (String, ActorRef))
-      // пришлось так сделать, т.к. сам класс send определен за пределами класса mainChat
-      // а при определении класса send внутри mainChat, он становится недоступным для класса-актора actor
-      // При определении внутри mainChat и класса-актора actor, и кейс класса send jvm выбрасывает ошибку
-
-
-      // в конце очищаем поле ввода TextField
+      // очищаем поле ввода TextField
       message.clear()
     }
   }
@@ -224,12 +222,6 @@ class rootGUIController {
       val textFlow: TextFlow = new TextFlow(text)  // TextFlow объект из сообщения пользователя-собеседника
       textFlow.setStyle("-fx-background-color: rgb(233, 233, 235);" + "-fx-background-radius: 0px 10px 10px 0px;") // установка стиля textFlow
       textFlow.setPadding(new Insets(5, 10, 5, 0))
-
-      // два TextFlow, один содержит имя отправителя сообщения (собеседник), а второй текст сообщения отправителя
-      // располагаются они в HBox, который, в свою очередь, располагается в VBox
-      // эти два TextFlow должны выглядеть как один элемент (как оформление сообщения в ВК)
-
-      //hBox1.getChildren.add(userNameTextFlow) // помещаем в горизонтальный контейнер hBox1: HBox имя пользователя-собеседника textFlow
 
       hBox.getChildren.add(userNameTextFlow)
       hBox.getChildren.add(textFlow) // помещаем в горизонтальный контейнер hBox: HBox сообщение пользователя-собеседника textFlow

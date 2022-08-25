@@ -8,34 +8,36 @@ import javafx.scene.control.Alert.AlertType
 class inputDataToConnectToClusterController {
 
   @FXML
-  private var myHostForConnect: TextField = _
+  private var myHostForConnect: TextField = _ // поле ввода ip-адреса узла, который будет подключен к кластеру
 
   @FXML
-  private var myPortForConnect: TextField = _
+  private var myPortForConnect: TextField = _ // поле ввода порта узла, который будет подключен к кластеру
 
   @FXML
-  private var connectHost: TextField = _
+  private var connectHost: TextField = _ // поле ввода ip-адреса узла, к которому будет происходить подключение к кластеру
 
   @FXML
-  private var connectPort: TextField = _
+  private var connectPort: TextField = _ // поле ввода порта узла, к которому будет происходить подключение к кластеру
 
   @FXML
   private var connectionButton: Button = _
 
   @FXML
-  private var createHost: TextField = _
+  private var createHost: TextField = _ // поле ввода ip-адреса узла для создания кластера
 
   @FXML
-  private var createPort: TextField = _
+  private var createPort: TextField = _ // поле ввода порта узла для создания кластера
 
   @FXML
   private var createButton: Button = _
 
   private var mainChat: mainChat = _
 
+  
+  // Регулярное выражение для определения того, является ли указанная строка ip-адресом
   val regValidNumbers: String = """([01]?\d\d?|2[0-4]\d|25[0-5])"""
-
   val reg: String =  f"^$regValidNumbers\\.$regValidNumbers\\.$regValidNumbers\\.$regValidNumbers$$"
+  
 
   def setMainChat(mainChat: mainChat): Unit = {
     this.mainChat = mainChat
@@ -54,6 +56,12 @@ class inputDataToConnectToClusterController {
     }
   }
 
+  /**
+   * Функция для создания предупреждения
+   * @param title заголовок предупреждения
+   * @param headerText тема
+   * @param contentText подробности
+   */
   def alert(title: String, headerText: String, contentText: String): Unit = {
     val alert: Alert = new Alert(AlertType.WARNING)
     alert.setTitle(title)
@@ -63,6 +71,12 @@ class inputDataToConnectToClusterController {
     alert.showAndWait()
   }
 
+  /**
+   * Функция для проверки корректности указанных данных. 
+   * Определяет, является ли указанный пользователем порт числом, лежащим в пределах от 1023 до 49152, или нет.
+   * @param string возможное число в строковом представлении
+   * @return true, если string - число в пределах от 1023 до 49152, иначе false
+   */
   def isCurrentDigit(string: String): Boolean = {
     try{
       val string2 = string.toInt
@@ -76,20 +90,22 @@ class inputDataToConnectToClusterController {
     }
   }
 
+  /**
+   * Функционал кнопки для подключения к кластеру
+   */
   @FXML
   private def connect: Unit = {
+    // получение текста из полей ввода
     val myHost = myHostForConnect.getText()
-    val myPort = myPortForConnect.getText()//.toInt
+    val myPort = myPortForConnect.getText()
     val hostToConnect = connectHost.getText()
-    val portToConnect = connectPort.getText()//.toInt
-
-//    val regVaidNumbers: String = """([01]?\d\d?|2[0-4]\d|25[0-5])"""
-//
-//    val reg: String =  f"^$regVaidNumbers\\.$regVaidNumbers\\.$regVaidNumbers\\.$regVaidNumbers$$"
+    val portToConnect = connectPort.getText()
+    
 
     if(!myHost.isEmpty && !myPort.isEmpty && !hostToConnect.isEmpty && !portToConnect.isEmpty) {
       if(myHost.matches(reg) && hostToConnect.matches(reg) && isCurrentDigit(myPort) && isCurrentDigit(portToConnect)) {
         if (!(myHost + myPort).equals(hostToConnect + portToConnect)) {
+          // установка новых значений переменных в главном классе для подключения к кластеру
           mainChat.setMyHost(myHost)
           mainChat.setMyPort(myPort.toInt)
           mainChat.setHostToConnect(hostToConnect)
@@ -117,14 +133,19 @@ class inputDataToConnectToClusterController {
       alert(title, headerText, contentText)
     }
   }
-
+  
+  /**
+   * Функционал кнопки для создания кластера
+   */
   @FXML
   private def create: Unit = {
+    // получение текста из полей ввода
     val createClusterOnTheHost = createHost.getText()
     val createClusterOnThePort = createPort.getText()
 
     if(!createClusterOnTheHost.isEmpty && !createClusterOnThePort.isEmpty){
       if(createClusterOnTheHost.matches(reg) && isCurrentDigit(createClusterOnThePort)){
+        // установка новых значений переменных в главном классе для подключения к кластеру
         mainChat.setMyHost(createClusterOnTheHost)
         mainChat.setMyPort(createClusterOnThePort.toInt)
         mainChat.setHostToConnect(createClusterOnTheHost)

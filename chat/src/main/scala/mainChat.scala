@@ -22,20 +22,23 @@ import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.util.Random.alphanumeric
 
 
+/**
+ * message - кортеж из пяти элементов - текста сообщения(из GUI элемента TextField), ссылки на актора отправителя, имя отправителя,
+ * выбранный отправителем чат и время отправки
+ *
+ */
 
-case class send(message: (String, ActorRef, String, String, String))
+case class send(message: (String, ActorRef, String, String, String)) // Класс для отправки сообщения в общий чат, беседу
 
 case class publicMessage(message: (String, ActorRef, String, String, String))
 
-case class privateSend(message: (String, ActorRef, String, String, String))
+case class privateSend(message: (String, ActorRef, String, String, String)) // Класс для отправки сообщения в приватный чат, личные сообщения
 
 case class privateMessage(message: (String, ActorRef, String, String, String))
 
 case class setConnectionList(connList: ObservableList[user])
 
-//case class setChatsHistory(chatsHistory: HashMap[String, ObservableList[HBox]] )
 case class setChatsHistory(chatsHist: HashMap[String, ArrayBuffer[HBox]])
-//case class setChatsHistory(chatsHist: ObservableList[HashMap[String, ArrayBuffer[HBox]]])
 
 case class myNameIs(name: String, host: String, port: Integer, actorReference: ActorRef)
 
@@ -47,20 +50,14 @@ class actor extends Actor with ActorLogging {
 
   var controller: rootGUIController = _
 
-  var userName: String = ""
+  var userName: String = "" // имя, введенное пользователем
 
-  var connectionList: ObservableList[user] = _
+  var connectionList: ObservableList[user] = _ // список подключений
 
-  //var chatsHistory: HashMap[String, ObservableList[HBox]] = _
-  var chatsHistory: HashMap[String, ArrayBuffer[HBox]] = _
-  //var chatsHistory: ObservableList[HashMap[String, ArrayBuffer[HBox]]] = null
+  var chatsHistory: HashMap[String, ArrayBuffer[HBox]] = _ // история сообщений
 
-  //var history: Map[String -> ObservableList[TextFlow]] = null
-
-  var mediator: ActorRef = _
-  var mediatorForConnectionList: ActorRef = _
-
-  var topic: String = "publicChat"
+  var mediator: ActorRef = _ // посредник для рассылки сообщений всем актерам, которые находятся в общем чате
+  var mediatorForConnectionList: ActorRef = _ // посредник для рассылки сообщений о новом подключении узла
 
   val actorCluster = cluster.Cluster(context.system)
 
@@ -73,13 +70,13 @@ class actor extends Actor with ActorLogging {
     mediator ! DistributedPubSubMediator.Subscribe("publicChat", self)
     mediatorForConnectionList ! DistributedPubSubMediator.Subscribe("connectionList", self)
 
-    mediator ! Put(self)
+    mediator ! Put(self) // добавляет текущего актора в список акторов, которым можно отослать личное сообщение
 
-    actorCluster.subscribe(self, classOf[MemberEvent], classOf[UnreachableMember], classOf[MemberUp])
+    actorCluster.subscribe(self, classOf[MemberEvent], classOf[UnreachableMember], classOf[MemberUp]) // подписка на события кластера
   }
 
   override def postStop() = {
-    actorCluster.unsubscribe(self)
+    actorCluster.unsubscribe(self) // отписка от событий кластера
   }
 
   /**
@@ -126,42 +123,41 @@ class actor extends Actor with ActorLogging {
 
 
   def receive = LoggingReceive {
-//    case setChatsHistory(chatsHistory: HashMap[String, ObservableList[HBox]]) =>
-//      this.chatsHistory = chatsHistory
-//    case setChatsHistory(chatsHist: HashMap[String, ArrayBuffer[HBox]]) =>
-//      chatsHistory = chatsHist
-//      println("it is ok")
-//      val selectedChatHistory: ArrayBuffer[HBox] = ArrayBuffer.empty[HBox]
-//      chatsHistory = HashMap(usr.getActorReference->selectedChatHistory)
-//      println(chatsHistory("publicChat"))
-    case setChatsHistory(chatsHist: HashMap[String, ArrayBuffer[HBox]]) => //chatsHist: ObservableList[HashMap[String, ArrayBuffer[HBox]]]
+    case setChatsHistory(chatsHist: HashMap[String, ArrayBuffer[HBox]]) => // актор получает ссылку на список сообщения chatsHistory
       chatsHistory = chatsHist
+      // добавление истории общего чата
       val usr: user = new user("Общий чат", "publicChat", 0000, "publicChat")
       val selectedChatHistory: ArrayBuffer[HBox] = ArrayBuffer.empty[HBox] // пустой массив контейнеров HBox.
       chatsHistory.update(usr.getActorReference, selectedChatHistory) // создание новой пары ключ(ссылка на актора)-значение(массив selectedChatHistory)
-    case setConnectionList(connList: ObservableList[user]) =>
+    case setConnectionList(connList: ObservableList[user]) => // актор получает ссылку на список подключений connectionList
       connectionList = connList
+      // добавление общего чата в список подключений для его отображения в GUI TableView
       val usr: user = new user("Общий чат", "publicChat", 0000, "publicChat")
       connectionList.add(usr)
-      //println(chatsHistory("publicChat"))
-      //val labels: ObservableList[HBox] = FXCollections.observableArrayList()
     case setUserNameActor(uN: String) => // установка имени пользователя актора. Аббревиатура uN - userName
       userName = uN
     case myNameIs(name: String, host: String, port: Integer, actorReference: ActorRef) =>
-      val usr: user = new user(name, host, port, "/"+actorReference.path.parent.name+"/"+actorReference.path.name) //создание объекта класса user с информацией об акторе, который отправил сообщение myNameIs
-      
+      /**
+       * Добавление нового актора, подключившегося к кластеру(т.к. один узел - один актор пользователя),
+       * в список подключений, а также добавление ссылки этого актора в map-структуру chatsHistory для ведения истории сообщений
+       * с этим актором(пользователем)
+       */
+      //создание объекта класса user с информацией об акторе, который отправил сообщение myNameIs
+      val usr: user = new user(name, host, port, "/"+actorReference.path.parent.name+"/"+actorReference.path.name)
+
       // проверка неполучения сообщения от самого себя и отсутствие данного объекта класса user (переменная usr выше) в списке подключений connectionList
       if(!(self==actorReference) && !(searchDuplicate(connectionList, usr.getActorReference)>0)) { // !searchDuplicate(connectionList, usr.getActorReference)
         connectionList.add(usr) // добавление нового пользователя в список подключений
-        //val selectedChatHistory: ObservableList[HBox] = FXCollections.observableArrayList()
         val selectedChatHistory: ArrayBuffer[HBox] = ArrayBuffer.empty[HBox]
-        chatsHistory.update(usr.getActorReference, selectedChatHistory)
-        println(chatsHistory("publicChat"))
+        chatsHistory.update(usr.getActorReference, selectedChatHistory) // для ведения истории сообщений с этим актором(пользователем)
       }
-    case s: rootGUIController => controller = s // если актор получает объект типа rootGUIController, то этот объект - контроллер => устанавливаем controller = s
-    case publicMessage(message: (String, ActorRef, String, String, String)) => // если актор получает кортеж(нужно уточнить) из трех элементов String, ActorRef, String, String, то этот кортеж - данные, отправленные актором, на который подписан текущий актор
-      // s._4 - контакт, выбранный отправителем
-      // s._3 - имя пользователя, который прислал сообщение
+    case s: rootGUIController => controller = s
+    case publicMessage(message: (String, ActorRef, String, String, String)) =>
+      // message._5 - время
+      // message._4 - контакт(пользователь, чат из TableView), выбранный отправителем
+      // message._3 - имя пользователя, который прислал сообщение
+      // message._2 - ссылка на отправителя
+      // message._1 - текст сообщения( из TextField )
       val stringLocalActorReference: String = "/"+message._2.path.parent.name+"/"+message._2.path.name // ссылка на актора вида /user/actor#3243 без указания системы акторов, хоста и порта
       //val myStringLocalActorReference: String = "/"+self.path.parent.name+"/"+self.path.name
       if(!(message._2 == self)){
@@ -183,32 +179,13 @@ class actor extends Actor with ActorLogging {
         }else{
           controller.addLabelIntoChatsHistory(message._1, message._3, stringLocalActorReference, message._5)
         }
-          //          controller.addLabel(message._1, controller.getMessageHistory, message._3)
-//        if(controllerSelectedUser.equals("publicChat")){
-//          controller.addLabelIntoChatsHistory(message._1, message._3, stringLocalActorReference)
-//        }else if(controllerSelectedUser.equals(stringLocalActorReference)){
-//          controller.addLabel(message._1, controller.getMessageHistory, message._3)
-//        }else{
-//          controller.addLabelIntoChatsHistory(message._1, message._3, stringLocalActorReference)
-//        }
       }
-//    case privateMessage(message: (String, ActorRef, String)) =>
-//      val stringLocalActorReference: String = "/"+message._2.path.parent.name+"/"+message._2.path.name // ссылка на актора вида /user/actor#3243 без указания системы акторов, хоста и порта
-//      if(controller.getSelectedUser.equals(stringLocalActorReference)) {
-//        controller.addLabel(message._1, controller.getMessageHistory, message._3) // добавляем в чат(HBox) новую метку(Label) с помощью метода класса-контроллера(controller)
-//      }else{
-//        controller.addLabelIntoChatsHistory(stringLocalActorReference)
-//      }
     case "test" => println("It is a test") // тест
-    case privateSend(message: (String, ActorRef, String, String, String))=>
+    case privateSend(message: (String, ActorRef, String, String, String))=> // отправка message конкретному актору(пользователю), т.е. приватный чат, личные сообщения
       mediator ! DistributedPubSubMediator.Send(message._4, privateMessage(message), localAffinity=false)
-    case send(message: (String, ActorRef, String, String, String))=> // если актор получает объект кейс класса send с единственным аргументом-кортежом(message: (String, ActorRef, String)), то актор рассылает аргумент message всем подписчикам
+    case send(message: (String, ActorRef, String, String, String))=> // отправка message в общий чат(рассылка сообщения всем подписчикам темы publicChat)
       mediator ! DistributedPubSubMediator.Publish("publicChat", publicMessage(message))
-      //println(DistributedPubSubMediator.CountSubscribers("connectionList"))
     case MemberUp(member) => // добавление нового пользователя, только подключившегося к кластеру, в список подключенных пользователей(connectionList)
-      //println("SelfCluster "+actorCluster.selfAddress)
-      //println("Member "+member.address)
-
       if(!(actorCluster.selfAddress == member.address)) {//!(actorCluster.selfAddress == member.address)
         log.info(s"[Listener] node is up: $member")
         println("###################################################################################################################################################################\n")
@@ -237,13 +214,6 @@ class actor extends Actor with ActorLogging {
         }
       })
 
-//      connectionList.forEach(println)
-//      val iter = connectionList.iterator()
-//      while(iter.hasNext){
-//        val u = iter.next()
-//        println(u.getActorReference)
-//      }
-
       chatsHistory.remove(indexAndActorReference._2) // удаление истории сообщений с пользователем user с узла с адресом addressActorWhoExit
 
 
@@ -269,7 +239,7 @@ object mainApp{
 
 class mainChat extends Application{
 
-  private val iconUrl = "n/icon2.png"
+  private val iconUrl = "icon.png"
   private var primaryStage: Stage = _ // сцена чата
   private var inputDataToConnectToClusterStage: Stage = _
   private var inputNameStage: Stage = _ // сцена для ввода имени пользователя
@@ -320,16 +290,17 @@ class mainChat extends Application{
 
   /**
    * Функция отправки актору сообщения, которое нужно отослать всем участникам группового чата
-   * @param message кортеж из трех элементов - текста сообщения(из GUI элемента TextField), ссылки на актора отправителя и имени отправителя
+   * @param message кортеж из пяти элементов - текста сообщения(из GUI элемента TextField), ссылки на актора отправителя, имя отправителя,
+   * выбранный отправителем чат и время отправки
    */
   def sendingMessage(message: (String, ActorRef, String, String, String)): Unit = {
     actor1 ! send(message)
   }
 
   /**
-   * Функция отправки актору сообщения, которое нужно отослать конкретному актору
-   * @param message сообщение для отправки. Содержит сообщение, ссылку на отправителя и имя пользователя отправителя
-   * @param recipient строковое представление ссылки на актора-получателя (ActorRef.toString)
+   * Функция отправки актору сообщения, которое нужно отослать конкретному актору(т.е. реализация приватного чата, личных сообщений)
+   * @param message кортеж из пяти элементов - текста сообщения(из GUI элемента TextField), ссылки на актора отправителя, имя отправителя,
+   * выбранный отправителем чат и время отправки
    */
   def privateSendingMessage(message: (String, ActorRef, String, String, String)): Unit = {
     actor1 ! privateSend(message)
@@ -395,8 +366,6 @@ class mainChat extends Application{
       this.inputNameStage = new Stage()
       inputNameStage.setTitle("Введите имя пользователя")
       inputNameStage.getIcons.add(new Image(iconUrl))
-      //inputNameStage.initModality(Modality.WINDOW_MODAL)
-      //inputNameStage.initOwner(primaryStage)
 
       inputNameStage.setResizable(false) // запрет на изменение размера окна
 
@@ -459,6 +428,7 @@ class mainChat extends Application{
 
       this.controller = loader.getController
       primaryStage.setOnCloseRequest(controller.closeEventHandler)
+      primaryStage.setResizable(false)
       controller.setMainChat(this)
       actor1 ! controller // передаем актору контроллер, чтобы актор мог вызвать метод addLabel и добавить полученное сообщение на экран
 
