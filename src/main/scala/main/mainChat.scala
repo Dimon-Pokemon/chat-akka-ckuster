@@ -187,13 +187,14 @@ class actor extends Actor with ActorLogging {
       mediator ! DistributedPubSubMediator.Publish("publicChat", publicMessage(message))
     case MemberUp(member) => // добавление нового пользователя, только подключившегося к кластеру, в список подключенных пользователей(connectionList)
       if(!(actorCluster.selfAddress == member.address)) {//!(actorCluster.selfAddress == member.address)
-        mediatorForConnectionList ! DistributedPubSubMediator.Publish("connectionList", myNameIs(userName, actorCluster.selfAddress.getHost().get, actorCluster.selfAddress.getPort().get, self))
         log.info(s"[Listener] node is up: $member")
         println("###################################################################################################################################################################\n")
         println("New node is up!\n")
         println("###################################################################################################################################################################")
         //connectionList.add(new user(userName, member.address.getHost().toString, member.address.getPort().get())) // добавление нового пользователя в список подключений
         println(member.toString)
+        sleep(2000)
+        mediatorForConnectionList ! DistributedPubSubMediator.Publish("connectionList", myNameIs(userName, actorCluster.selfAddress.getHost().get, actorCluster.selfAddress.getPort().get, self))
       }
     case UnreachableMember(member) =>
       log.info(s"[Listener] node is unreachable: $member")
