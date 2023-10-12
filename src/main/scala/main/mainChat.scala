@@ -134,8 +134,8 @@ class actor extends Actor with ActorLogging {
       // добавление общего чата в список подключений для его отображения в GUI TableView
       val usr: user = new user("Общий чат", "publicChat", 0x0, "publicChat")
       connectionList.add(usr)
-    case setUserNameActor(uN: String) => // установка имени пользователя актора. Аббревиатура uN - userName
-      userName = uN
+    case setUserNameActor(user_name: String) => // установка имени пользователя актора
+      userName = user_name
     case myNameIs(name: String, host: String, port: Integer, actorReference: ActorRef) =>
       /**
        * Добавление нового актора, подключившегося к кластеру(т.к. один узел - один актор пользователя),
@@ -151,7 +151,7 @@ class actor extends Actor with ActorLogging {
         val selectedChatHistory: ArrayBuffer[HBox] = ArrayBuffer.empty[HBox]
         chatsHistory.update(usr.getActorReference, selectedChatHistory) // для ведения истории сообщений с этим актором(пользователем)
       }
-    case s: rootGUIController => controller = s
+    case controllerRootGUI: rootGUIController => controller = controllerRootGUI
     case publicMessage(message: (String, ActorRef, String, String, String)) =>
       // message._5 - время
       // message._4 - контакт(пользователь, чат из TableView), выбранный отправителем
@@ -311,13 +311,12 @@ class mainChat extends Application{
   
     initInputAndSetNameUser() // форма ввода имени пользователя и связывание его с переменной userName
     initCluster() // создание кластера, создание системы акторов, создание актора и передача ему имени(userName) и списка подключенных акторов(connectionList)
-  
     this.primaryStage.setTitle("Чат. Пользователь: "+userName) // устанавливаем title окна с именем пользователя
   
     initRootLayout() // отображение основного окна чата
 
     // баг не вопроизводится почему-то
-//    sleep(500) // подумать, нужно ли это
+    //    sleep(1000) // подумать, нужно ли это
   }
 
 
