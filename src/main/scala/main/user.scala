@@ -5,6 +5,14 @@ import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
 
+/**
+ * Класс, представляющий пользователя (user).
+ * Содерижт:
+ *     - имя
+ *     - ip адрес
+ *     - порт
+ *     - ссылку на актора, с которым связан данный пользователь (на одного пользователя один актор)
+ */
 class user {
   private var name: StringProperty = null
   private var ip: StringProperty = null
